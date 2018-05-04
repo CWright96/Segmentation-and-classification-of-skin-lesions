@@ -1,0 +1,131 @@
+
+%author Sai Krishnan
+
+alex = alexnet;
+layers = alex.Layers;
+%%
+
+layers(23) = fullyConnectedLayer(3);
+layers(25) = classificationLayer;
+%%
+%pre-processing
+imgDir = 'H:\My Documents\GitHub\alexnet\myImages\SK'; %change this to the directory of your training images
+imgfiles = dir(fullfile(imgDir,'*.jpg'));
+NumberOfFiles = size(imgfiles);
+for i=1:NumberOfFiles(1)
+    ImPath = fullfile(imgDir,imgfiles(i).name());
+    disp(ImPath)
+    NewIM = imresize(imread(ImPath), [227 227]); %alexnet wants 227*227 images
+    imwrite(NewIM,ImPath);
+end
+
+%%
+%Setup datasets
+allImages = imageDatastore('myImages', 'IncludeSubfolders', true, 'LabelSource', 'foldernames');
+
+[trainingImages, testImages] = splitEachLabel(allImages, 0.9, 'randomize'); %90:10 split for trainging and test images
+%%
+%training new network
+disp('Training');
+opts = trainingOptions('sgdm', 'InitialLearnRate', 0.001, 'maxEpochs', 20, 'MiniBatchSize', 64,'plots','training-progress');
+myNet = trainNetwork(trainingImages, layers, opts);
+save('TrainedAlex','myNet')
+
+
+%%
+%testing the trained network
+NumberOfTests = size(testImages.Files);
+NumberOfTests = NumberOfTests(1);
+%True positive, False positive, True Negative and False negative values for
+%each classification type
+TP_Mel = 0;
+TP_SK = 0;
+TP_Nev = 0;
+FP_Mel = 0;
+FP_SK = 0;
+FP_Nev = 0;
+TN_Mel = 0;
+TN_SK = 0;
+TN_Nev = 0;
+FN_Mel = 0;
+FN_SK = 0;
+FN_Nev = 0;
+%this section turns the non-binary classification problem into a binary one
+for i=1:NumberOfTests
+    disp(i);
+    testLabel = testImages.Labels(i);%known truth
+    testImage = readimage(testImages,i);
+    predictedLabel = classify(myNet, testImage);
+    if (testLabel == 'Melanoma') && (predictedLabel == testLabel)
+        TP_Mel = TP_Mel +1;
+        TN_SK = 0;
+        TN_Nev = 0;
+    elseif (testLabel == 'Nevus') && (predictedLabel == testLabel)
+        TP_Nev = TP_Nev +1;
+        TN_Mel = TN_Mel+1;
+        TN_SK = TN_SK+1;
+    elseif (testLabel == 'SK') && (predictedLabel == testLabel)
+        TP_SK = TP_SK +1;
+        TN_Mel = TN_Mel+1;
+        TN_Nev = TN_Nev+1;
+    elseif (testLabel == 'Melanoma') && (predictedLabel ~= testLabel)
+        if predictedLabel == 'Nevus'
+            FP_Nev = FP_Nev +1;
+        elseif predictedLabel == 'SK'
+            FP_SK = FP_SK +1;
+        end  
+        FN_Mel = FN_Mel+1;
+    elseif (testLabel == 'Nevus') && (predictedLabel ~= testLabel)
+        if predictedLabel == 'Melanoma'
+             FP_Mel = FP_Mel +1;
+        elseif predictedLabel == 'SK'
+            FP_SK = FP_SK +1;
+        end
+        FN_Nev = FN_Nev +1;
+    elseif (testLabel == 'SK') && (predictedLabel ~= testLabel)
+        if predictedLabel == 'Melanoma'
+             FP_Mel = FP_Mel +1;
+        elseif predictedLabel == 'Nevus'
+            FP_Nev = FP_Nev +1;
+        end
+        FN_SK = FN_SK +1;
+    end    
+end
+
+Sens_Mel = TP_Mel/(TP_Mel + FN_Mel);
+Sens_Nev = TP_Nev/(TP_Nev + FN_Nev);
+Sens_SK = TP_SK/(TP_SK + FN_SK);
+
+Spec_Mel = TN_Mel/(TN_Mel+FP_Mel);
+Spec_Nev = TN_Nev/(TN_Nev+FP_Nev);
+Spec_SK = TN_SK/(TN_SK+FP_SK);
+%averages computed externally
+
+[predictedLabels,~] = classify(myNet, testImages);
+accuracy = mean(predictedLabels == testImages.Labels);
+disp(accuracy);
+
+%%
+%ROC curves for each type
+
+%melanoma ROC curve
+load('TrainedAlex')
+rngTestImages= shuffle(testImages);
+[predictedLabels,scores] = classify(myNet, rngTestImages); 
+%predicted labels is the classification of the image 
+%scores is the confidence the network has in that predictiob
+melScores = scores(1:358); %need to split the scores into each classification
+nevScores = scores(359:716);
+SKScores = scores(717:end);
+[X1,Y1,T1,AUC1] = perfcurve(predictedLabels,melScores,'Melanoma');
+[X2,Y2,T2,AUC2] = perfcurve(predictedLabels,nevScores,'Nevus');
+[X3,Y3,T3,AUC3] = perfcurve(predictedLabels,SKScores,'SK');
+%plot(X1,Y1)    %uncomment as appropriate
+%plot(X2,Y2)
+%plot(X3,Y3);
+xlabel('False positive rate') ;
+ylabel('True positive rate');
+title('ROC for Classification');
+
+
+

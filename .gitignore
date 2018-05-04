@@ -1,0 +1,10 @@
+
+*.jpg
+*.png
+myImages/_DS_Store
+myImages/Melanoma/_DS_Store
+myImages/Nevus/_DS_Store
+myImages/SK/_DS_Store
+ISIC_TestData/Images/ISIC-2017_Test_v2_Data_metadata.csv
+TrainedNetworks/FirstEpoch.mat
+*.mat

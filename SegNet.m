@@ -1,24 +1,26 @@
 
-
+%author Chris Wright
+%%
+%preprocesing
 imgDir = 'H:\My Documents\GitHub\EEE6230-project-3\ISIC_TrainingData\Images';
 labelDir = 'H:\My Documents\GitHub\EEE6230-project-3\ISIC_TrainingData\Labels';
-%%Resize training images
-% imgfiles = dir(fullfile(imgDir,'*.jpg'));
-% labfiles = dir(fullfile(labelDir,'*.png'));
-% NumberOfFiles = size(imgfiles);
-%  for i=1:NumberOfFiles(1)
-%      ImPath = fullfile(imgDir,imgfiles(i).name());
-%      disp(ImPath)
-%      NewIM = imresize(imread(ImPath), [360 480]);
-%      imwrite(NewIM,ImPath);
-%  end
-% for i=1:NumberOfFiles(1)
-%     ImPath = fullfile(labelDir,labfiles(i).name());
-%     disp(ImPath)
-%     NewIM = imresize(imread(ImPath), [360 480]);
-%     imwrite(NewIM,ImPath);
-% end
-
+%Resize training images
+imgfiles = dir(fullfile(imgDir,'*.jpg'));
+labfiles = dir(fullfile(labelDir,'*.png'));
+NumberOfFiles = size(imgfiles);
+ for i=1:NumberOfFiles(1)
+     ImPath = fullfile(imgDir,imgfiles(i).name());
+     disp(ImPath)
+     NewIM = imresize(imread(ImPath), [360 480]);   %vgg16 expects 360*480
+     imwrite(NewIM,ImPath);
+ end
+for i=1:NumberOfFiles(1)
+    ImPath = fullfile(labelDir,labfiles(i).name());
+    disp(ImPath)
+    NewIM = imresize(imread(ImPath), [360 480]);    %vgg16 expects 360*480
+    imwrite(NewIM,ImPath);
+end
+%%
 %set up the dataStores
 imds = imageDatastore(imgDir);
 %set yp the labels for the ground truth masks
@@ -29,7 +31,7 @@ pxds = pixelLabelDatastore(labelDir,Classes,LabelIDs);
 %start of the network
 imSize = [360 480 3];
 numClasses = numel(Classes);
-
+%%
 %graph of the original unchanged network
 lGraph = segnetLayers(imSize,numClasses,'vgg16');
 lGraph.Layers;
@@ -48,17 +50,10 @@ ylim([-0.9 10.9]);
 axis off;
 title('Last Nine Layers');
 
+%%
 %Transfer Learning
-% fig2 = figure('Position',[100,100,1000,1100]);
-% subplot(1,2,1);
-% plot(lGraph); 
-% xlim([2.862 3.200]);
-% ylim([-0.9 10.9]);
-% axis off;
-% title('Original Last Nine Layers');
 
-
-lGraph = removeLayers(lGraph,{'pixelLabels'});
+lGraph = removeLayers(lGraph,{'pixelLabels'});  %remove last layer
 tbl = countEachLabel(pxds);
 frequency = tbl.PixelCount/sum(tbl.PixelCount);
 
@@ -66,41 +61,39 @@ frequency = tbl.PixelCount/sum(tbl.PixelCount);
 imFreq = tbl.PixelCount ./tbl.ImagePixelCount;
 classWeights = median(imFreq) ./ imFreq;
 pxLayer = pixelClassificationLayer('Name','Labels','ClassNames',tbl.Name, ...
-    'ClassWeights',classWeights);
+    'ClassWeights',classWeights);   %setup new final layer
 
 lGraph = addLayers(lGraph, pxLayer);
 lGraph = connectLayers(lGraph,'softmax','Labels');
 lGraph.Layers;
 
-% subplot(1,2,2);
-% plot(lGraph); 
-% xlim([2.862 3.200]);
-% ylim([-0.9 10.9]);
-% axis off;
-% title('new Last Nine Layers');
+%plot last 9 layers
+subplot(1,2,2);
+plot(lGraph); 
+xlim([2.862 3.200]);
+ylim([-0.9 10.9]);
+axis off;
+title('new Last Nine Layers');
 
 %%
 %Training
 disp('Training time!');
 
-
 augmenter = imageDataAugmenter('RandXReflection',true, 'RandXTranslation', ...
-    [-10 10],'RandYTranslation', [-10 10]);
+    [-10 10],'RandYTranslation', [-10 10]); %Data Augmenter to allow for robust training
 
 dataSource = pixelLabelImageSource(imds,pxds,'DataAugmentation',augmenter);
 options = trainingOptions('sgdm', 'InitialLearnRate', 0.001, 'MaxEpochs', ...
     10, 'MiniBatchSize', 2, 'plots','training-progress');
 net= trainNetwork(dataSource,lGraph,options);
 save('tenthEpoch','net')
-% options = trainingOptions('sgdm', 'InitialLearnRate', 0.001, 'MaxEpochs', ...
-%     5, 'MiniBatchSize', 1, 'plots','training-progress');
-% net= trainNetwork(dataSource,lGraph,options);
-% save('fithEpoch','net')
+
 disp('NN Trained');
 %%
 %Compare groud truth vs predicted 
+NetToTest = 'H:\My Documents\GitHub\Segmentation-and-classification-of-skin-lesions\TrainedNetworks\thirdEpoch.mat';
 %load('thirdEpoch.mat');
-%load('fithEpoch.mat');
+
 pic_num = 10; % Arbituary number can be changed
 
 I = readimage(imds,pic_num);
@@ -119,11 +112,11 @@ title('Ground truth vs predicted');
 
 %change this set to the appropriate directories
 %maybe include a function for getting inputs in the future
-testIMGdir = 'H:\My Documents\GitHub\EEE6230-project-3\ISIC_TestData\Images';
-ResultsDir = 'H:\My Documents\GitHub\EEE6230-project-3\Results-fithEpoch-2';
+testIMGdir = 'H:\My Documents\GitHub\Segmentation-and-classification-of-skin-lesions\ISIC_TestData\Images'; %test images
+ResultsDir = 'H:\My Documents\GitHub\Segmentation-and-classification-of-skin-lesions\Results-firstEpoch';   %change this to predicted segmentation images
 %
 mkdir(ResultsDir);  %create the directory that the results go into. Gives a warning if it already exists
-testIMGds = imageDatastore(testIMGdir);
+testIMGds = imageDatastore(testIMGdir); %datastore of the test images
 
 index = 1:600;
 %All this because my gpu can't run the standard test built into matlab
@@ -138,7 +131,7 @@ for i=index
     for x = X
         for y =Y
             if (result(x,y) == "255")
-                doubleResult(x,y) = 255;    %some image black magic fuckery            
+                doubleResult(x,y) = 255;    %Image array is zeros so only white pixels need to be made         
             end           
         end
     end
@@ -152,10 +145,10 @@ disp('done');
 
 
 %%
-%This is where the tests are going to be written
+%This is where the tests are written
 %
-ResultsDir = 'H:\My Documents\GitHub\EEE6230-project-3\Results-NoWeight';
-GroundTruthdir = 'H:\My Documents\GitHub\EEE6230-project-3\ISIC_TestData\labels';
+ResultsDir = 'H:\My Documents\GitHub\Segmentation-and-classification-of-skin-lesions\Results-firstEpoch'; %this is the directory that you stored the results in earlier
+GroundTruthdir = 'H:\My Documents\GitHub\EEE6230-project-3\ISIC_TestData\labels'; %these are the ground truths of the testing dataset
 %
 Classes = ["0","255"];      %0 for skin 255 for lesion
 LabelIDs = [0,255];
@@ -183,6 +176,7 @@ overallSensitivity = 0;
 overallSpecificty = 0;
 overallAccuracy = 0;
 overallJaccard = 0;
+
 for i=1:sampleSize
     GroumdTruth = readimage(GroundTruthds,i); %known truth
     TestImage = readimage(restultLABELds,i);  %mask that needs testing
@@ -223,7 +217,7 @@ for i=1:sampleSize
     overallSensitivity = overallSensitivity + thisSensitivity;
     overallSpecificty = overallSpecificty + thisSpecificty;
     overallAccuracy = overallAccuracy + thisAccuracy;
-    %overallJaccard = overallJaccard + thisJaccard;
+    overallJaccard = overallJaccard + thisJaccard;
     
     disp(i);
     disp("Sensitivity: " + thisSensitivity);
@@ -233,55 +227,15 @@ for i=1:sampleSize
     
     
 end
-
 %make averages
 
 overallSensitivity = overallSensitivity/sampleSize;
 overallSpecificty = overallSpecificty/sampleSize;
 overallAccuracy = overallAccuracy/sampleSize;
-%overallJaccard = overallJaccard/sampleSize;
+overallJaccard = overallJaccard/sampleSize;
 
 disp("Sensitivity: " + overallSensitivity);
 disp("Specificty: " + overallSpecificty);
 disp("Accuracy: " + overallAccuracy);
-%disp("Jaccard: " + overallJaccard);
+disp("Jaccard: " + overallJaccard);
 
-%%
-%Jaccard index testing
-
-
-ResultsDir = 'H:\My Documents\GitHub\EEE6230-project-3\Results-NoWeight';
-GroundTruthdir = 'H:\My Documents\GitHub\EEE6230-project-3\ISIC_TestData\labels';
-%
-Classes = ["0","255"];      %0 for skin 255 for lesion
-LabelIDs = [0,255];
-GroundTruthds = pixelLabelDatastore(GroundTruthdir,Classes,LabelIDs);
-restultLABELds = pixelLabelDatastore(ResultsDir,Classes,LabelIDs);
-
-
-%Both of the testing directories need to be the same size
-noGroundTruths = size(GroundTruthds.Files);
-noGroundTruths = noGroundTruths(1); %number of ground truths
-noResults = size(restultLABELds.Files);
-noResults = noResults(1);   %number of tested images for that training time
-
-if (noGroundTruths>noResults)
-    sampleSize = noResults;
-elseif(noGroundTruths<noResults)
-    sampleSize = noGroundTruths;
-else
-    sampleSize = noGroundTruths;
-end
-
-overallJaccard = 0;
-for i=1:sampleSize
-    disp(i);
-    GroumdTruth = readimage(GroundTruthds,i); %known truth
-    TestImage = readimage(restultLABELds,i);  %mask that needs testing
-    
-    thisJaccard = jaccard(GroumdTruth,TestImage);
-    overallJaccard = overallJaccard + thisJaccard;
-end
-overallJaccard = overallJaccard/sampleSize;
-
-disp(overallJaccard);
