@@ -51,6 +51,7 @@ FN_Mel = 0;
 FN_SK = 0;
 FN_Nev = 0;
 %this section turns the non-binary classification problem into a binary one
+testImages = shuffle(testImages);
 for i=1:NumberOfTests
     disp(i);
     testLabel = testImages.Labels(i);%known truth
