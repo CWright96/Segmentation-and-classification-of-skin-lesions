@@ -148,12 +148,9 @@ SKScores = scores(717:end);
 [X3,Y3,T3,AUC3] = perfcurve(predictedLabels,SKScores,'SK');
 
 
-%plot(X1,Y1)                                                                %Plot Melanoma    
-%plot(X2,Y2)                                                                %Plot Nevus
-%plot(X3,Y3);                                                               %Plot SK
-
-%Specify the labels of the Plot
-
+%plot(X1,Y1)                                                                %Plotting Melanoma    
+%plot(X2,Y2) %Plot Nevus
+%plot(X3,Y3);%Plo
 xlabel('False positive rate') ;
 ylabel('True positive rate');
 title('ROC for Classification');
