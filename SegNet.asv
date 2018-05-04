@@ -225,17 +225,17 @@ for i=1:sampleSize
     overallSpecificty = overallSpecificty + thisSpecificty;
     overallAccuracy = overallAccuracy + thisAccuracy;
     overallJaccard = overallJaccard + thisJaccard;
-%     
-%     disp(i);
-%     disp("Sensitivity: " + thisSensitivity);
-%     disp("Specificty: " + thisSpecificty);
-%     disp("Accuracy: " + thisAccuracy);
+    
+    disp(i);
+    disp("Sensitivity: " + thisSensitivity);
+    disp("Specificty: " + thisSpecificty);
+    disp("Accuracy: " + thisAccuracy);
     %disp("Jaccard: " + thisJaccard);
-    %if you want to see the individual results uncomment the above lines
+    
     
 end
 %make averages
-%testing metrics calculated below
+
 overallSensitivity = overallSensitivity/sampleSize;
 overallSpecificty = overallSpecificty/sampleSize;
 overallAccuracy = overallAccuracy/sampleSize;
