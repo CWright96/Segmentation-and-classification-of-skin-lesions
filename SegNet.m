@@ -14,7 +14,6 @@ NumberOfFiles = size(imgfiles);
      NewIM = imresize(imread(ImPath), [360 480]);   %vgg16 expects 360*480
      imwrite(NewIM,ImPath);
  end
- %resize the GT masks
 for i=1:NumberOfFiles(1)
     ImPath = fullfile(labelDir,labfiles(i).name());
     disp(ImPath)
@@ -55,22 +54,20 @@ title('Last Nine Layers');
 %Transfer Learning
 
 lGraph = removeLayers(lGraph,{'pixelLabels'});  %remove last layer
-
-%pixel wieghting
 tbl = countEachLabel(pxds);
 frequency = tbl.PixelCount/sum(tbl.PixelCount);
+
+
 imFreq = tbl.PixelCount ./tbl.ImagePixelCount;
 classWeights = median(imFreq) ./ imFreq;
 pxLayer = pixelClassificationLayer('Name','Labels','ClassNames',tbl.Name, ...
     'ClassWeights',classWeights);   %setup new final layer
 
-%connect the new layer to the existing layers
-
 lGraph = addLayers(lGraph, pxLayer);
 lGraph = connectLayers(lGraph,'softmax','Labels');
 lGraph.Layers;
 
-%plot last 9 layers so we can see the changes
+%plot last 9 layers
 subplot(1,2,2);
 plot(lGraph); 
 xlim([2.862 3.200]);
@@ -86,21 +83,16 @@ augmenter = imageDataAugmenter('RandXReflection',true, 'RandXTranslation', ...
     [-10 10],'RandYTranslation', [-10 10]); %Data Augmenter to allow for robust training
 
 dataSource = pixelLabelImageSource(imds,pxds,'DataAugmentation',augmenter);
-%options:
-%traininjg Optimisation: SGDM
-%learing rate: 0.001
-%Max number of training sessions: 10 (Increasing this will make training times also increase)
-%minbatch size: 2 (incrasing this will make the training take more vram up)
-%plots the training progress
 options = trainingOptions('sgdm', 'InitialLearnRate', 0.001, 'MaxEpochs', ...
     10, 'MiniBatchSize', 2, 'plots','training-progress');
 net= trainNetwork(dataSource,lGraph,options);
-save('tenthEpoch','net')        %save the trained network with an appropriae file name
+save('tenthEpoch','net')
+
 disp('NN Trained');
 %%
-%Compare groud truth vs predicted with a quick visiual check
+%Compare groud truth vs predicted 
 NetToTest = 'H:\My Documents\GitHub\Segmentation-and-classification-of-skin-lesions\TrainedNetworks\thirdEpoch.mat';
-%load('thirdEpoch.mat'); %load the network that's to be testsed if nessesary
+%load('thirdEpoch.mat');
 
 pic_num = 10; % Arbituary number can be changed
 
@@ -153,7 +145,7 @@ disp('done');
 
 
 %%
-%
+%This is where the tests are written
 %
 ResultsDir = 'H:\My Documents\GitHub\Segmentation-and-classification-of-skin-lesions\Results-firstEpoch'; %this is the directory that you stored the results in earlier
 GroundTruthdir = 'H:\My Documents\GitHub\EEE6230-project-3\ISIC_TestData\labels'; %these are the ground truths of the testing dataset
@@ -227,15 +219,15 @@ for i=1:sampleSize
     overallAccuracy = overallAccuracy + thisAccuracy;
     overallJaccard = overallJaccard + thisJaccard;
     
-%     disp(i);
-%     disp("Sensitivity: " + thisSensitivity);
-%     disp("Specificty: " + thisSpecificty);
-%     disp("Accuracy: " + thisAccuracy);
+    disp(i);
+    disp("Sensitivity: " + thisSensitivity);
+    disp("Specificty: " + thisSpecificty);
+    disp("Accuracy: " + thisAccuracy);
     %disp("Jaccard: " + thisJaccard);
-    %uncomment if you want to see the metrics for each image
+    
     
 end
-%take the average of each metric over the whole dataset
+%make averages
 
 overallSensitivity = overallSensitivity/sampleSize;
 overallSpecificty = overallSpecificty/sampleSize;

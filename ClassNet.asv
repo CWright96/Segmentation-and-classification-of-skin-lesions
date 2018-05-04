@@ -4,7 +4,6 @@
 alex = alexnet;
 layers = alex.Layers;
 %%
-
 layers(23) = fullyConnectedLayer(3);
 layers(25) = classificationLayer;
 %%
@@ -15,7 +14,7 @@ NumberOfFiles = size(imgfiles);
 for i=1:NumberOfFiles(1)
     ImPath = fullfile(imgDir,imgfiles(i).name());
     disp(ImPath)
-    NewIM = imresize(imread(ImPath), [227 227]); %alexnet wants 227*227 images
+    NewIM = imresize(imread(ImPath), [227 227]); %alexnet wants 227*227
     imwrite(NewIM,ImPath);
 end
 
