@@ -2,7 +2,7 @@
 %Author Sai Krishnan
 %% Loading a pretrained Network
 alex = alexnet;                                                             %Load ALexnet
-layers = alex.Layers;                                                       %Display the layers of the netwrok
+layers = alex.Layers;                                                       %Display the layers of the network
 %%
 
 layers(23) = fullyConnectedLayer(3);                                        %Change the number of fully connected layers to 3 in the 23rd layer
@@ -14,7 +14,7 @@ layers(25) = classificationLayer;                                           %Mak
 imgDir = 'H:\My Documents\GitHub\alexnet\myImages\SK';                      %Directory of training images
 imgfiles = dir(fullfile(imgDir,'*.jpg'));                                   %List all files with .jpg 
 NumberOfFiles = size(imgfiles);                                             %Specificy the number of files
-for i=1:NumberOfFiles(1)                                                    %create a if loop to resize the images
+for i=1:NumberOfFiles(1)                                                    %Create an if loop to resize the images
     ImPath = fullfile(imgDir,imgfiles(i).name());                           %Specify the image path
     disp(ImPath)                                        
     NewIM = imresize(imread(ImPath), [227 227]);                            %Resize to the size the network wants(227*227 for AlexNet).
@@ -32,8 +32,8 @@ allImages = imageDatastore('myImages', 'IncludeSubfolders', true, 'LabelSource',
 %Training our Network
 
 disp('Training');
-opts = trainingOptions('sgdm', 'InitialLearnRate', 0.001, 'maxEpochs', 20, 'MiniBatchSize', 64,'plots','training-progress'); %Specifiy the training options
-myNet = trainNetwork(trainingImages, layers, opts);                                                                          %Train the network with the Training imagedatastore, with the specfied training options over all the layers.
+opts = trainingOptions('sgdm', 'InitialLearnRate', 0.001, 'maxEpochs', 20, 'MiniBatchSize', 64,'plots','training-progress'); %Specify the training options
+myNet = trainNetwork(trainingImages, layers, opts);                                                                          %Train the network with the Training imagedatastore, with the specified training options over all the layers.
 save('TrainedAlex','myNet')                                                                                                  %Save the trained Network.
 
 
@@ -67,26 +67,26 @@ for i=1:NumberOfTests                                                       %For
     disp(i);                                                                
     testLabel = testImages.Labels(i);                                       %Known Test Image Label of the Image
     testImage = readimage(testImages,i);
-    predictedLabel = classify(myNet, testImage);                            %Predcited Label is the label if the Test Image classfied using our Network.
-    if (testLabel == 'Melanoma') && (predictedLabel == testLabel)           %Check if Test label is Melnoma and the Predicteed label is Same as test label.
-        TP_Mel = TP_Mel +1;                                                 %Add one to TP Mel
+    predictedLabel = classify(myNet, testImage);                            %Predcited Label- Label of the Test Image classfied using our Network.
+    if (testLabel == 'Melanoma') && (predictedLabel == testLabel)           %Check if, Test label is Melnoma and the Predicteed label is the same as test label.
+        TP_Mel = TP_Mel +1;                                                 
         TN_SK = 0;
         TN_Nev = 0;
     elseif (testLabel == 'Nevus') && (predictedLabel == testLabel)          %Check if Test label is Nevus and the Predicteed label is Same as test label.
-        TP_Nev = TP_Nev +1;                                                 %Add one to TP Nevus
-        TN_Mel = TN_Mel+1;                                                  %Add one to TN Mel
-        TN_SK = TN_SK+1;                                                    %Add on to TN SK
+        TP_Nev = TP_Nev +1;                                                 
+        TN_Mel = TN_Mel+1;                                                  
+        TN_SK = TN_SK+1;                                                    
     elseif (testLabel == 'SK') && (predictedLabel == testLabel)             %Check if Test label is Nevus and the Predicteed label is Same as test label.
-        TP_SK = TP_SK +1;                                                   %Add one to TP SK
-        TN_Mel = TN_Mel+1;                                                  %Add one to TN Mel
-        TN_Nev = TN_Nev+1;                                                  %Add One to TN Nev
+        TP_SK = TP_SK +1;                                                  
+        TN_Mel = TN_Mel+1;                                                 
+        TN_Nev = TN_Nev+1;                                                  
     elseif (testLabel == 'Melanoma') && (predictedLabel ~= testLabel)       %If Test label is not equal to predicted label
         if predictedLabel == 'Nevus'                                        %Check if Predicted Label is Nevus
-            FP_Nev = FP_Nev +1;                                             %Add one to False Positive Nevus
+            FP_Nev = FP_Nev +1;                                             
         elseif predictedLabel == 'SK'                                       %Check if Predicted Label is SK
-            FP_SK = FP_SK +1;                                               %Add one to FP SK
+            FP_SK = FP_SK +1;                                               
         end  
-        FN_Mel = FN_Mel+1;                                                  %Add one to FN Melanoma
+        FN_Mel = FN_Mel+1;                                                  
         
         %Repeat the same for Nevus and SK
         
