@@ -14,7 +14,7 @@ layers(25) = classificationLayer;                                           %Mak
 imgDir = 'H:\My Documents\GitHub\alexnet\myImages\SK';                      %Directory of training images
 imgfiles = dir(fullfile(imgDir,'*.jpg'));                                   %List all files with .jpg 
 NumberOfFiles = size(imgfiles);                                             %Specificy the number of files
-for i=1:NumberOfFiles(1)                                                    %Create an if loop to resize the images
+for i=1:NumberOfFiles(1)                                                    %Create a for loop to resize the images
     ImPath = fullfile(imgDir,imgfiles(i).name());                           %Specify the image path
     disp(ImPath)                                        
     NewIM = imresize(imread(ImPath), [227 227]);                            %Resize to the size the network wants(227*227 for AlexNet).
